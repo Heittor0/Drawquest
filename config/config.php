@@ -1,25 +1,22 @@
 <?php
-// config.php - Conexão compatível com Neon + fallback para clientes antigos
+// config.php - Conexão compatível com Neon + fallback sem chamar pg_last_error indevidamente
 
 $databaseUrl = getenv('DATABASE_URL');
 
-// helper: adiciona o param options=endpoint%3D... à URL (URL-encode do '=')
-function addEndpointOptionToUrl($url, $endpoint_id) {
-    // Se já houver query, junta com &, senão com ?
-    $sep = (strpos($url, '?') === false) ? '?' : '&';
-    // options=endpoint%3D<endpoint_id>   (endpoint%3D === "endpoint=" urlencoded)
-    return $url . $sep . 'options=endpoint%3D' . rawurlencode($endpoint_id);
+// fallback local (apenas se você ainda não definiu env) - opcional, remova se preferir
+if (!$databaseUrl) {
+    // Atenção: não deixe credenciais hardcoded no repositório em produção
+    $databaseUrl = 'postgresql://neondb_owner:npg_xZdsYvp34nNJQ@ep-green-salad-aderih8r-pooler.c-2.us-east-1.aws.neon.tech/loja_database?sslmode=require';
 }
 
-// Se não houver variable env (modo local), você pode definir aqui como fallback (opcional)
-if (!$databaseUrl) {
-    // REMOVER / SUBSTITUIR por variáveis de ambiente para não vazar senha
-    $databaseUrl = 'postgresql://neondb_owner:npg_xZdsYvp34nNJQ@ep-green-salad-aderih8r-pooler.c-2.us-east-1.aws.neon.tech/loja_database?sslmode=require';
+function addEndpointOptionToUrl($url, $endpoint_id) {
+    $sep = (strpos($url, '?') === false) ? '?' : '&';
+    return $url . $sep . 'options=endpoint%3D' . rawurlencode($endpoint_id);
 }
 
 $parts = parse_url($databaseUrl);
 if ($parts === false || !isset($parts['host'])) {
-    die("DATABASE_URL inválida ou incompleta. Verifique a variável de ambiente.");
+    die("DATABASE_URL inválida. Verifique a variável de ambiente no Render (cole a string completa do Neon).");
 }
 
 $host = $parts['host'];
@@ -28,54 +25,59 @@ $user = isset($parts['user']) ? $parts['user'] : null;
 $password = isset($parts['pass']) ? $parts['pass'] : null;
 $dbname = isset($parts['path']) ? ltrim($parts['path'], '/') : null;
 
-// Derive endpoint id (parte antes de "-pooler" se existir; caso contrário, a primeira label do host)
+// endpoint_id: parte antes de "-pooler" se existir, caso contrário primeira label do host
 if (strpos($host, '-pooler') !== false) {
     $endpoint_id = substr($host, 0, strpos($host, '-pooler'));
 } else {
     $endpoint_id = explode('.', $host)[0];
 }
 
-// Tenta PDO normal (ideal no Render, quando libpq tem SNI)
+// Tenta conexão PDO (ideal para Render/dockers atualizados)
 $dsn_pdo = "pgsql:host={$host};port={$port};dbname={$dbname};sslmode=require";
 
 try {
     $pdo = new PDO($dsn_pdo, $user, $password, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
     ]);
-    // sucesso
-    // echo "Conectado via PDO normalmente.";
-    return; // ou continue com $pdo disponível globalmente
+    // $pdo disponível para uso no resto do app
+    // echo "Conexão PDO OK";
+    return;
 } catch (PDOException $e) {
     $msg = $e->getMessage();
 
-    // Se o erro for de host inválido/truncado, pare e alerte
-    if (stripos($msg, 'could not translate host name') !== false || stripos($host, '...') !== false) {
-        die("Erro DNS/host: verifique se DATABASE_URL contém o host completo (sem '...') e sem quebras de linha. Host atual: '$host'");
+    // Se for problema de host truncado (ex.: '...') - mensagem clara
+    if (stripos($msg, 'could not translate host name') !== false || strpos($host, '...') !== false) {
+        die("Erro DNS/host: verifique se DATABASE_URL contém o host COMPLETO (sem '...') no painel do Render.");
     }
 
-    // Se for erro de endpoint/SNI, tenta fallback com options=endpoint%3D...
+    // Se for erro de endpoint/SNI ou inconsistent project name -> tentar fallback com options=endpoint
     if (stripos($msg, 'Endpoint ID is not specified') !== false
-        || stripos($msg, 'SNI') !== false
-        || stripos($msg, 'inconsistent project name') !== false) {
+        || stripos($msg, 'inconsistent project name') !== false
+        || stripos($msg, 'SNI') !== false) {
 
-        // Tentar conectar via pg_connect usando a URL com options (isso usa libpq URL style)
+        // cria URL com options=endpoint%3D...
         $url_with_options = addEndpointOptionToUrl($databaseUrl, $endpoint_id);
 
-        // pg_connect aceita URL-style ou connection strings; usamos a URL completa
+        // tenta conectar via pg_connect (bom para clientes libpq mais velhos)
         $conn = @pg_connect($url_with_options);
 
         if ($conn) {
-            // sucesso com fallback
-            // echo "Conectado via pg_connect com options endpoint (fallback para cliente antigo).";
+            // Conexão via pg_connect bem-sucedida
+            // Defina uma variável global se precisar usar pg_* functions
+            $GLOBALS['pg_conn'] = $conn;
             return;
         } else {
-            // busca erro do pg
-            $pg_err = pg_last_error();
-            die("Fallback com 'options=endpoint' falhou: " . ($pg_err ? $pg_err : $msg));
+            // pg_connect falhou — não chamamos pg_last_error sem conexão (evita fatal)
+            die("Fallback com options=endpoint falhou. Verifique suas credenciais e se usou a string EXATA da Neon.");
         }
     }
 
-    // Outro erro: mostrar mensagem
+    // Se for erro de autenticação de senha
+    if (stripos($msg, 'password authentication failed') !== false) {
+        die("Erro na conexão com o banco de dados: senha inválida. Verifique a variável DATABASE_URL no Render e/ou redefina a senha no Neon.");
+    }
+
+    // Caso geral
     die("Erro na conexão com o banco de dados (PDO): " . $msg);
 }
 ?>
