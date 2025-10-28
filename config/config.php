@@ -1,22 +1,46 @@
 <?php
+// config.php - Conexão PDO segura com Neon (Render)
+$databaseUrl = getenv('DATABASE_URL');
 
-$host = 'ep-green-salad-aderih8r-pooler.c-2.us-east-1.aws.neon.tech';
+if (!$databaseUrl) {
+    // fallback local (opcional)
+    $host = 'ep-green-salad-aderih8r-pooler.c-2.us-east-1.aws.neon.tech';
+    $port = 5432;
+    $user = 'neondb_owner';
+    $password = 'npg_xZdsYvp34nNJ'; // <== preferível usar variável de ambiente
+    $dbname = 'loja_database';
+    $dsn = "pgsql:host={$host};port={$port};dbname={$dbname};sslmode=require";
+    try {
+        $pdo = new PDO($dsn, $user, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+        ]);
+    } catch (PDOException $e) {
+        die("Erro na conexão com o banco de dados (fallback): " . $e->getMessage());
+    }
+} else {
+    // Se DATABASE_URL estiver no formato postgresql://user:pass@host:port/db?params
+    $parts = parse_url($databaseUrl);
 
-$user = 'neondb_owner';
-$password = 'npg_xZdsYvp34nNJ';
-$dbname = 'loja_database';
+    if ($parts === false || !isset($parts['host'])) {
+        die('DATABASE_URL inválida.');
+    }
 
-$dsn = "pgsql:host=$host;dbname=$dbname;sslmode=require";
-$endpoint_id = 'ep-green-salad-aderih8r';
+    $host = $parts['host'];
+    $port = isset($parts['port']) ? $parts['port'] : 5432;
+    $user = isset($parts['user']) ? $parts['user'] : null;
+    $password = isset($parts['pass']) ? $parts['pass'] : null;
+    $dbname = isset($parts['path']) ? ltrim($parts['path'], '/') : null;
 
-$dsn = "pgsql:host=$host;dbname=$dbname;user=$user;password=$password;sslmode=require;options='endpoint=$endpoint_id'";
+    // monta DSN sem options conflitantes (removemos qualquer "options='endpoint=...'" manual)
+    $dsn = "pgsql:host={$host};port={$port};dbname={$dbname};sslmode=require";
 
-try {
-    $pdo = new PDO($dsn, $user, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-} catch (PDOException $e) {
-    die("Erro na conexão com o banco de dados: " . $e->getMessage());
+    try {
+        $pdo = new PDO($dsn, $user, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+        ]);
+        //echo "Conectado com sucesso!";
+    } catch (PDOException $e) {
+        die("Erro na conexão com o banco de dados: " . $e->getMessage());
+    }
 }
-
 ?>
