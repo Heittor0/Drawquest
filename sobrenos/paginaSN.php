@@ -1,3 +1,12 @@
+<?php
+session_start();
+require "../config/config.php";
+
+
+
+
+
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -11,6 +20,11 @@
   <header>
     <h1>DrawQuest</h1>
     <nav>
+        <?php if (empty($_SESSION['id'])): ?>
+-        <a class="aba-link" href="../PaginaLogin/login.php">Login</a>
+      <?php else: ?>
+        <a href="../config/sair.php">Deslogar</a>
+      <?php endif; ?>
       <a href="../Home/index.php">Home</a>
       
       <a href="../Personagens/paginaPerso.php">Personagens</a>

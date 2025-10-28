@@ -13,6 +13,11 @@
             <h1>DrawQuest</h1>
         </div>
         <nav>
+              <?php if (empty($_SESSION['id'])): ?>
+-        <a class="aba-link" href="../PaginaLogin/login.php">Login</a>
+      <?php else: ?>
+        <a href="../config/sair.php">Deslogar</a>
+      <?php endif; ?>
                   <a href="../Home/index.php">Home</a>
             <a href="../Sobre Nós/paginaSN.php">Sobre Nós</a>
       <a href="../Personagens/paginaPerso.php">Personagens</a>

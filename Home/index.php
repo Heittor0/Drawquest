@@ -1,3 +1,12 @@
+<?php
+session_start();
+require "../config/config.php";
+
+
+
+
+
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -13,10 +22,15 @@
       <h1>DrawQuest</h1>
     </div>
     <nav>
-      
-      <a href="../Sobre Nós/paginaSN.php">Sobre Nós</a>
+        <?php if (empty($_SESSION['id'])): ?>
+-        <a class="aba-link" href="../PaginaLogin/login.php">Login</a>
++        
+      <?php else: ?>
+        <a href="../config/sair.php">Deslogar</a>
+      <?php endif; ?>
+      <a href="../sobreNos/paginaSN.php">Sobre Nós</a>
       <a href="../Personagens/paginaPerso.php">Personagens</a>
-      <a href="../Sobre Nós/Contato/contato.php">Contato</a>
+      <a href="../sobrenos/Contato/contato.php">Contato</a>
     </nav>
   </header>
 
@@ -35,12 +49,12 @@
     <div class="galeria-navegacao">
       <button class="seta esquerda">◀</button>
       <div class="cards">
-        <div class="card"><img src="https://i.imgur.com/DMXG4nK.png" alt="Personagem"><h4>Personagem 1</h4><p>R$??</p><a href="#" class="btn">Ver detalhes</a></div>
-        <div class="card"><img src="https://i.imgur.com/8Kf3CVm.png" alt="Personagem"><h4>Personagem 2</h4><p>R$??</p><a href="#" class="btn">Ver detalhes</a></div>
-        <div class="card"><img src="https://i.imgur.com/DMXG4nK.png" alt="Personagem"><h4>Personagem 3</h4><p>R$??</p><a href="#" class="btn">Ver detalhes</a></div>
-        <div class="card"><img src="https://i.imgur.com/8Kf3CVm.png" alt="Personagem"><h4>Personagem 4</h4><p>R$??</p><a href="#" class="btn">Ver detalhes</a></div>
-        <div class="card"><img src="https://i.imgur.com/DMXG4nK.png" alt="Personagem"><h4>Personagem 5</h4><p>R$??</p><a href="#" class="btn">Ver detalhes</a></div>
-        <div class="card"><img src="https://i.imgur.com/8Kf3CVm.png" alt="Personagem"><h4>Personagem 6</h4><p>R$??</p><a href="#" class="btn">Ver detalhes</a></div>
+        <div class="card"><img src="https://i.imgur.com/DMXG4nK.png" alt="Personagem"><h4>Personagem 1</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=1" class="btn">Ver detalhes</a></div>
+        <div class="card"><img src="https://i.imgur.com/8Kf3CVm.png" alt="Personagem"><h4>Personagem 2</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=2" class="btn">Ver detalhes</a></div>
+        <div class="card"><img src="https://i.imgur.com/DMXG4nK.png" alt="Personagem"><h4>Personagem 3</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=3" class="btn">Ver detalhes</a></div>
+        <div class="card"><img src="https://i.imgur.com/8Kf3CVm.png" alt="Personagem"><h4>Personagem 4</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=4" class="btn">Ver detalhes</a></div>
+        <div class="card"><img src="https://i.imgur.com/DMXG4nK.png" alt="Personagem"><h4>Personagem 5</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=5" class="btn">Ver detalhes</a></div>
+        <div class="card"><img src="https://i.imgur.com/8Kf3CVm.png" alt="Personagem"><h4>Personagem 6</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=6" class="btn">Ver detalhes</a></div>
       </div>
       <button class="seta direita">▶</button>
     </div>

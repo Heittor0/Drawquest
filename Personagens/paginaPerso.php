@@ -26,7 +26,7 @@ $produtos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     </div>
     <nav>
       <?php if (empty($_SESSION['id'])): ?>
-        <a class="aba-link" href="../PaginaLogin/login.php">Login</a>
+        <a class="aba-link" href="../paginalogin/login.php">Login</a>
       <?php else: ?>
         <a href="../config/sair.php">Deslogar</a>
       <?php endif; ?>
