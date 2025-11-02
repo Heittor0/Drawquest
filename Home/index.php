@@ -2,7 +2,11 @@
 session_start();
 require "../config/config.php";
 
+$sql = "SELECT id, nome, pdf, texto, imagem, preco, classe, tempodepostagem
+        FROM produtos
+        ORDER BY tempodepostagem DESC";
 
+$produtos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
 
 
@@ -23,12 +27,12 @@ require "../config/config.php";
     </div>
     <nav>
         <?php if (empty($_SESSION['id'])): ?>
--        <a class="aba-link" href="../PaginaLogin/login.php">Login</a>
-+        
+      <a class="aba-link" href="../PaginaLogin/login.php">Login</a>
+   
       <?php else: ?>
         <a href="../config/sair.php">Deslogar</a>
       <?php endif; ?>
-      <a href="../sobreNos/paginaSN.php">Sobre Nós</a>
+      <a href="../sobrenos/paginaSN.php">Sobre Nós</a>
       <a href="../Personagens/paginaPerso.php">Personagens</a>
       <a href="../sobrenos/Contato/contato.php">Contato</a>
     </nav>
@@ -49,12 +53,27 @@ require "../config/config.php";
     <div class="galeria-navegacao">
       <button class="seta esquerda">◀</button>
       <div class="cards">
-        <div class="card"><img src="https://i.imgur.com/DMXG4nK.png" alt="Personagem"><h4>Personagem 1</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=1" class="btn">Ver detalhes</a></div>
-        <div class="card"><img src="https://i.imgur.com/8Kf3CVm.png" alt="Personagem"><h4>Personagem 2</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=2" class="btn">Ver detalhes</a></div>
-        <div class="card"><img src="https://i.imgur.com/DMXG4nK.png" alt="Personagem"><h4>Personagem 3</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=3" class="btn">Ver detalhes</a></div>
-        <div class="card"><img src="https://i.imgur.com/8Kf3CVm.png" alt="Personagem"><h4>Personagem 4</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=4" class="btn">Ver detalhes</a></div>
-        <div class="card"><img src="https://i.imgur.com/DMXG4nK.png" alt="Personagem"><h4>Personagem 5</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=5" class="btn">Ver detalhes</a></div>
-        <div class="card"><img src="https://i.imgur.com/8Kf3CVm.png" alt="Personagem"><h4>Personagem 6</h4><p>R$??</p><a href="Personagens/ver_produtos.php?id=6" class="btn">Ver detalhes</a></div>
+        <?php foreach ($produtos as $pro): ?>
+          <?php $id = (int)($pro['id'] ?? 0); ?>
+          <div class="card" role="link" tabindex="0" data-id="<?= $id ?>" aria-label="Ver produto <?= htmlspecialchars($pro['nome'] ?? 'Sem nome', ENT_QUOTES, 'UTF-8') ?>">
+            <?php
+              // Se imagem for um caminho string use-o; caso contrário exiba placeholder.
+              if (!empty($pro['imagem']) && is_string($pro['imagem'])) {
+                  $img = strpos($pro['imagem'], 'http') === 0 ? $pro['imagem'] : ('../' . ltrim($pro['imagem'], '/\\'));
+              } else {
+                  $img = 'https://i.imgur.com/DMXG4nK.png';
+              }
+            ?>
+            <img src="<?= htmlspecialchars($img, ENT_QUOTES, 'UTF-8') ?>" alt="Personagem">
+            <h4><?= htmlspecialchars($pro['nome'] ?? $pro['titulo'] ?? 'Sem nome', ENT_QUOTES, 'UTF-8') ?></h4>
+            <p><strong>Classe:</strong> <?= htmlspecialchars($pro['classe'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
+            <p><strong>Estilo:</strong> <?= htmlspecialchars($pro['estilo'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
+            <p><?= nl2br(htmlspecialchars($pro['texto'] ?? $pro['assunto'] ?? '', ENT_QUOTES, 'UTF-8')) ?></p>
+            <a class="btn" href="index.php?id=<?= $id ?>" onclick="event.stopPropagation();">Comprar / Ver</a>
+        </div>
+          </div>
+        <?php endforeach; ?>
+  
       </div>
       <button class="seta direita">▶</button>
     </div>
@@ -75,6 +94,27 @@ require "../config/config.php";
 
     direita.addEventListener('click', () => {
       cards.scrollBy({ left: 300, behavior: 'smooth' });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.card').forEach(function(card){
+        card.style.cursor = 'pointer';
+
+        card.addEventListener('click', function (e) {
+          // se o clique for em um link interno (ex: Comprar) não interferir
+          if (e.target.closest('a')) return;
+          var id = card.dataset.id;
+          if (id) window.location.href = '../Personagens/ver_produtos.php?id=' + encodeURIComponent(id);
+        });
+
+        card.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            var id = card.dataset.id;
+            if (id) window.location.href = '../Personagens/ver_produtos.php?id=' + encodeURIComponent(id);
+          }
+        });
+      });
     });
   </script>
 </body>

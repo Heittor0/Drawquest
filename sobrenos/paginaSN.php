@@ -28,7 +28,7 @@ require "../config/config.php";
       <a href="../Home/index.php">Home</a>
       
       <a href="../Personagens/paginaPerso.php">Personagens</a>
-      <a href="../Sobre Nós/Contato/contato.php">Contato</a>
+      <a href="Contato/contato.php">Contato</a>
     </nav>
   </header>
 
