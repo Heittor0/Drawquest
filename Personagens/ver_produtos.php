@@ -50,7 +50,7 @@ if (!empty($_SESSION['email']) && filter_var($_SESSION['email'], FILTER_VALIDATE
     }
 }
 ?>
-<?php var_dump($pro); ?>
+
 
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -58,7 +58,7 @@ if (!empty($_SESSION['email']) && filter_var($_SESSION['email'], FILTER_VALIDATE
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pro['nome'] ?? 'Produto', ENT_QUOTES, 'UTF-8') ?> — DrawQuest</title>
-    <link rel="stylesheet" href="StylePerso.css">
+    <link rel="stylesheet" href="StylePerso.css?v=1.0.3">
 </head>
 <body>
   <header>
@@ -71,51 +71,85 @@ if (!empty($_SESSION['email']) && filter_var($_SESSION['email'], FILTER_VALIDATE
 
   <main class="personagens">
     <div class="card-single">
-      <img src="<?= htmlspecialchars($img, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($pro['nome'] ?? 'Produto', ENT_QUOTES, 'UTF-8') ?>">
       <h2><?= htmlspecialchars($pro['nome'] ?? 'Sem nome', ENT_QUOTES, 'UTF-8') ?></h2>
-      <p><strong>Classe:</strong> <?= htmlspecialchars($pro['classe'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-      <p><strong>Estilo:</strong> <?= htmlspecialchars($pro['estilo'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-      <p><?= nl2br(htmlspecialchars($pro['texto'] ?? '', ENT_QUOTES, 'UTF-8')) ?></p>
+<p class="price-tag"><strong>Preço:</strong> <?= isset($pro['preco']) ? 'R$ ' . number_format((float)$pro['preco'], 2, ',', '.') : '-' ?></p>
+
+<p class="description">
+  <strong>Classe:</strong> <?= htmlspecialchars($pro['classe'] ?? '-', ENT_QUOTES, 'UTF-8') ?><br>
+  <strong>Estilo:</strong> <?= htmlspecialchars($pro['estilo'] ?? '-', ENT_QUOTES, 'UTF-8') ?><br>
+  <?= nl2br(htmlspecialchars($pro['texto'] ?? '', ENT_QUOTES, 'UTF-8')) ?>
+</p>
       <p><strong>Preço:</strong> <?= isset($pro['preco']) ? 'R$ ' . number_format((float)$pro['preco'], 2, ',', '.') : '-' ?></p>
 
       <?php if (!empty($pro['pdf'])): ?>
         <p><a href="download.php?id=<?= (int)$pro['id'] ?>">Baixar PDF</a></p>
       <?php endif; ?>
 
-      <!-- Payment UI -->
-      <div id="payment">
-        <h3>Pagar este produto</h3>
-        <label>
-          Seu email:
-          <input type="email" id="payerEmail" value="<?= htmlspecialchars($userEmail, ENT_QUOTES, 'UTF-8') ?>" placeholder="seu@exemplo.com" required>
-        </label>
-        <br>
-        <button id="payBtn" <?= empty($pro['preco']) ? 'disabled' : '' ?>>Pagar <?= isset($pro['preco']) ? 'R$ ' . number_format((float)$pro['preco'], 2, ',', '.') : '' ?></button>
+   <div id="payment">
+  <h3>Pagar este produto</h3>
+  <label>
+    Seu email:
+    <input type="email" id="payerEmail" value="<?= htmlspecialchars($userEmail, ENT_QUOTES, 'UTF-8') ?>" placeholder="seu@exemplo.com" required>
+  </label>
+  <br>
+  <button id="payBtn" <?= empty($pro['preco']) ? 'disabled' : '' ?>>Pagar <?= isset($pro['preco']) ? 'R$ ' . number_format((float)$pro['preco'], 2, ',', '.') : '' ?></button>
+  <div id="paymentResult" style="margin-top:1rem;"></div>
+</div>
 
-        <div id="paymentResult" style="margin-top:1rem;"></div>
-      </div>
-    </div>
-  </main>
-
-  <footer>© 2025 DrawQuest</footer>
-
+<!-- Modal markup -->
+<div id="qrModal" class="modal-overlay">
+  <div class="modal-content">
+    <button class="close-modal" aria-label="Fechar">&times;</button>
+    <h4>QRCode PIX</h4>
+    <img id="qrModalImg" src="" alt="QR Code PIX">
+    <pre id="pixCodeText"></pre>
+    <button class="copy-pix">Copiar código PIX</button>
+  </div>
+</div>
+<footer>© 2025 DrawQuest</footer>
 <script>
 (function(){
   const price = Number(<?= json_encode($pro['preco']) ?>);
-  const email = string(<?= json_encode($pro['email'])?>);
-
   const payBtn = document.getElementById('payBtn');
   const emailInput = document.getElementById('payerEmail');
   const result = document.getElementById('paymentResult');
+
+  const modal = document.getElementById('qrModal');
+  const modalImg = document.getElementById('qrModalImg');
+  const pixCodeText = document.getElementById('pixCodeText');
+  const copyPixBtn = modal.querySelector('button.copy-pix');
+  const closeModalBtn = modal.querySelector('button.close-modal');
 
   function showError(msg){
     result.innerHTML = '<div style="color:#b00;">'+msg+'</div>';
   }
 
+  function openModal(imgSrc, code) {
+    modalImg.src = imgSrc;
+    pixCodeText.textContent = code;
+    modal.style.display = 'flex';
+  }
+
+  function closeModal(){
+    modal.style.display = 'none';
+  }
+
+  closeModalBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', function(e){
+    if(e.target === modal) closeModal();
+  });
+
+  copyPixBtn.addEventListener('click', function(){
+    navigator.clipboard.writeText(pixCodeText.textContent).then(()=>{
+      copyPixBtn.textContent = 'Copiado!';
+      setTimeout(()=> copyPixBtn.textContent = 'Copiar código PIX', 2000);
+    });
+  });
+
   payBtn.addEventListener('click', async function(){
     result.innerHTML = '';
-    const email = (email.value || '').trim();
-    if (!email){
+    const ema = (emailInput.value || '').trim();
+    if (!ema){
       showError('Informe seu email.');
       return;
     }
@@ -129,7 +163,7 @@ if (!empty($_SESSION['email']) && filter_var($_SESSION['email'], FILTER_VALIDATE
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ preco: price, email: email })
+        body: JSON.stringify({ preco: price, email: ema })
       });
 
       const data = await resp.json();
@@ -141,40 +175,11 @@ if (!empty($_SESSION['email']) && filter_var($_SESSION['email'], FILTER_VALIDATE
         return;
       }
 
-      // exibir QR Code (base64) se disponível
       if (data.qr_code_base64) {
-        const img = document.createElement('img');
-        img.src = 'data:image/png;base64,' + data.qr_code_base64;
-        img.alt = 'QR Code PIX';
-        img.style.maxWidth = '280px';
-        img.style.display = 'block';
-        img.style.marginTop = '0.5rem';
-
-        const codePre = document.createElement('pre');
-        codePre.textContent = data.qr_code || '';
-        codePre.style.whiteSpace = 'pre-wrap';
-        codePre.style.wordBreak = 'break-all';
-        codePre.style.background = '#f7f7f7';
-        codePre.style.padding = '8px';
-        codePre.style.marginTop = '0.5rem';
-
-        const copyBtn = document.createElement('button');
-        copyBtn.textContent = 'Copiar código PIX';
-        copyBtn.style.display = 'inline-block';
-        copyBtn.style.marginTop = '0.5rem';
-        copyBtn.addEventListener('click', function(){
-          navigator.clipboard.writeText(data.qr_code || '').then(()=> {
-            copyBtn.textContent = 'Copiado';
-            setTimeout(()=> copyBtn.textContent = 'Copiar código PIX', 2000);
-          });
-        });
-
-        result.innerHTML = '<div>Pague com o QR Code abaixo ou copie o código PIX:</div>';
-        result.appendChild(img);
-        result.appendChild(codePre);
-        result.appendChild(copyBtn);
+        const imgSrc = 'data:image/png;base64,' + data.qr_code_base64;
+        openModal(imgSrc, data.qr_code || '');
       } else if (data.qr_code) {
-        result.innerHTML = '<div>PIX code:</div><pre style="white-space:pre-wrap;">'+data.qr_code+'</pre>';
+        openModal('', data.qr_code);
       } else {
         result.innerHTML = '<div>Pagamento criado. ID: '+(data.id || '')+'</div>';
       }
@@ -187,5 +192,3 @@ if (!empty($_SESSION['email']) && filter_var($_SESSION['email'], FILTER_VALIDATE
   });
 })();
 </script>
-</body>
-</html>
