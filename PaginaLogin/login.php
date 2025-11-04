@@ -47,9 +47,9 @@ $_SESSION['email']    = $usuario['email'];
         </div>
         <nav>
             <a href="../Home/index.php">Home</a>
-            <a href="../SobreNos/paginaSN.php">Sobre Nós</a>
+            <a href="../sobrenos/paginaSN.php">Sobre Nós</a>
             <a href="../Personagens/paginaPerso.php">Personagens</a>
-            <a href="../SobreNos/Contato/contato.php">Contato</a>
+            <a href="../sobrenos/Contato/contato.php">Contato</a>
         </nav>
     </header>
 
