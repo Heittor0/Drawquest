@@ -26,14 +26,14 @@ $produtos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     </div>
     <nav>
       <?php if (empty($_SESSION['id'])): ?>
-        <a class="aba-link" href="../paginalogin/login.php">Login</a>
+        <a class="aba-link" href="../PaginaLogin/login.php">Login</a>
       <?php else: ?>
         <a href="../config/sair.php">Deslogar</a>
       <?php endif; ?>
 
       <a href="../Home/index.php">Home</a>
-      <a href="../SobreNos/paginaSN.php">Sobre Nós</a>
-      <a href="../SobreNos/Contato/contato.php">Contato</a>
+      <a href="../sobrenos/paginaSN.php">Sobre Nós</a>
+      <a href="../sobrenos/Contato/contato.php">Contato</a>
     </nav>
   </header>
 
