@@ -30,6 +30,17 @@ if (empty($email)) {
     echo json_encode(['error' => 'Email do pagador não definido.']);
     exit;
 }
+$payment->metadata = [
+    'user_id' => $_SESSION['id'],
+    'product_id' => $data['produto_id']
+];
+$stmt = $pdo->prepare("INSERT INTO compras (user_id, produto_id, payment_id, status)
+VALUES (:u, :p, :pay, 'pendente')");
+$stmt->execute([
+    ':u' => $_SESSION['id'],
+    ':p' => $data['produto_id'],
+    ':pay' => $payment->id
+]);
 
 $payment = new MercadoPago\Payment();
 $payment->transaction_amount = $preco;
@@ -69,16 +80,5 @@ $pro = $stmt->fetch(PDO::FETCH_ASSOC);
 
 
 
-if($payment === 'aprovado'){
-    if($id == 1){
-    header("location:../imagens_dowloads/imagem1");
-    exit;
-    }
-     if($id == 1){
-    header("location:../imagens_dowloads/imagem1");
-    exit;
-    }
-    
-}
-exit;
+
 ?>
