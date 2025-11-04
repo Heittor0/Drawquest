@@ -1,99 +1,72 @@
 <?php
 session_start();
+require '../config/config.php';
+$jaComprou = false;
 
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/php_error.log');
-
-// JSON sempre:
-header('Content-Type: application/json; charset=utf-8');
-
-require __DIR__ . '/../vendor/autoload.php';
-require __DIR__ . '/config.php';
-
-use MercadoPago\SDK;
-use MercadoPago\Payment;
-
-SDK::setAccessToken('APP_USR-8241181758277150-110118-c2698262c1775d2af8b0598c1a779ef4-835289279');
-
-// pega o JSON enviado
-$data = json_decode(file_get_contents("php://input"), true);
-
-$preco = isset($data['preco']) ? floatval($data['preco']) : 0;
-$email = isset($data['email']) ? $data['email'] : '';
-$produto_id = isset($data['produto_id']) ? intval($data['produto_id']) : 0;
-
-// validações
-if ($preco <= 0) {
+// pega id da query string e valida
+$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+if ($id <= 0) {
     http_response_code(400);
-    echo json_encode(["error" => "Preço inválido"]);
+    echo 'ID inválido.';
     exit;
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-    echo json_encode(["error" => "Email inválido"]);
+// busca o produto pelo id
+$sql = "SELECT id, nome, pdf, texto, imagem, preco, classe, estilo, tempodepostagem
+        FROM produtos
+        WHERE id = :id
+        LIMIT 1";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([':id' => $id]);
+$pro = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$pro) {
+    http_response_code(404);
+    echo 'Produto não encontrado.';
     exit;
 }
 
-if ($produto_id <= 0) {
-    http_response_code(400);
-    echo json_encode(["error" => "Produto inválido"]);
-    exit;
+// trata imagem (corrige caminho local → URL acessível)
+$placeholder = 'https://i.imgur.com/DMXG4nK.png';
+$img = $placeholder;
+
+if (!empty($pro['imagem']) && is_string($pro['imagem'])) {
+    $imagem = $pro['imagem'];
+
+    // Se for caminho absoluto do Windows, converte
+    if (preg_match('/^[A-Z]:\\\\/i', $imagem)) {
+        // Remove o prefixo do XAMPP
+        $imagem = str_replace(['C:\\xampp\\htdocs\\Site-RPG-xamp\\', '\\'], ['../', '/'], $imagem);
+        $img = $imagem;
+    } elseif (strpos($imagem, 'http') === 0) {
+        // Caminho remoto
+        $img = $imagem;
+    } else {
+        // Caminho relativo normal
+        $img = '../' . ltrim($imagem, '/');
+    }
 }
 
-if (empty($_SESSION['id'])) {
-    http_response_code(401);
-    echo json_encode(["error" => "Não autenticado"]);
-    exit;
+// obter email do usuário (sessão)
+$userEmail = '';
+if (!empty($_SESSION['email']) && filter_var($_SESSION['email'], FILTER_VALIDATE_EMAIL)) {
+    $userEmail = $_SESSION['email'];
+} elseif (!empty($_SESSION['user_id'])) {
+    $stmtU = $pdo->prepare('SELECT email FROM users WHERE id = :id LIMIT 1');
+    $stmtU->execute([':id' => (int) $_SESSION['user_id']]);
+    $u = $stmtU->fetch(PDO::FETCH_ASSOC);
+    if ($u && !empty($u['email']) && filter_var($u['email'], FILTER_VALIDATE_EMAIL)) {
+        $userEmail = $u['email'];
+    }
 }
+ $userEmail = $_SESSION['email'] ?? null;
+  $produto_id = $pro['id'];
 
-// cria pagamento
-$payment = new Payment();
-$payment->transaction_amount = $preco;
-$payment->payment_method_id = "pix";
-$payment->payer = ["email" => $email];
-$payment->description = "Compra do produto ID $produto_id";
-
-$payment->metadata = [
-    "user_id" => $_SESSION['id'],
-    "product_id" => $produto_id
-];
-
-$payment->save();
-
-// falhou?
-if (empty($payment->id)) {
-    http_response_code(500);
-    echo json_encode(["error" => "Falha ao criar pagamento"]);
-    exit;
-}
-
-// registra como pendente
-$stmt = $pdo->prepare("
-    INSERT INTO pagamentos (pagamento_id, email, produto_id, status)
-    VALUES (:pid, :email, :prod, :status)
-");
-$stmt->execute([
-    ":pid"   => $payment->id,
-    ":email" => $email,
-    ":prod"  => $produto_id,
-    ":status" => $payment->status
-]);
-
-// prepara resposta JSON
-$qr = $payment->point_of_interaction->transaction_data ?? null;
-
-http_response_code(201);
-echo json_encode([
-    "id" => $payment->id,
-    "status" => $payment->status,
-    "qr_code" => $qr->qr_code ?? null,
-    "qr_code_base64" => $qr->qr_code_base64 ?? null
-]);
+  $sql = "SELECT * FROM pagamentos WHERE email = ? AND produto_id = ? AND status = 'pago'";
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute([$userEmail, $produto_id]);
+  $jaComprou = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
-exit;
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
