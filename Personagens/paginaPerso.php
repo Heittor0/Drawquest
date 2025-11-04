@@ -46,16 +46,24 @@ $produtos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         <?php $id = (int)($pro['id'] ?? 0); ?>
         <div class="card" role="link" tabindex="0" data-id="<?= $id ?>" aria-label="Ver produto <?= htmlspecialchars($pro['nome'] ?? 'Sem nome', ENT_QUOTES, 'UTF-8') ?>">
           <?php
-            // Se imagem for um caminho string use-o; caso contrário exiba placeholder.
-            if (!empty($pro['imagem']) && is_string($pro['imagem'])) {
-                $img = strpos($pro['imagem'], 'http') === 0 ? $pro['imagem'] : ('../' . ltrim($pro['imagem'], '/\\'));
-            } else {
-                $img = 'https://i.imgur.com/DMXG4nK.png';
-            }
+           if (!empty($pro['imagem']) && is_string($pro['imagem'])) {
+    // Corrige caminhos locais do Windows para URL relativa
+    if (preg_match('/^[A-Z]:\\\\/i', $pro['imagem'])) {
+        // remove C:\xampp\htdocs\Site-RPG-xamp\
+        $img = str_replace(['C:\\xampp\\htdocs\\Site-RPG-xamp\\', '\\'], ['../', '/'], $pro['imagem']);
+    } elseif (strpos($pro['imagem'], 'http') === 0) {
+        $img = $pro['imagem'];
+    } else {
+        $img = '../' . ltrim($pro['imagem'], '/');
+    }
+} else {
+    $img = 'https://i.imgur.com/DMXG4nK.png';
+}
+
           ?>
           <img src="<?= htmlspecialchars($img, ENT_QUOTES, 'UTF-8') ?>" alt="Personagem">
           <h4><?= htmlspecialchars($pro['nome'] ?? $pro['titulo'] ?? 'Sem nome', ENT_QUOTES, 'UTF-8') ?></h4>
-          <p><strong>Classe:</strong> <?= htmlspecialchars($pro['classe'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
+          <p><strong>Raça:</strong> <?= htmlspecialchars($pro['classe'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
           <p><strong>Estilo:</strong> <?= htmlspecialchars($pro['estilo'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
           <p><?= nl2br(htmlspecialchars($pro['texto'] ?? $pro['assunto'] ?? '', ENT_QUOTES, 'UTF-8')) ?></p>
           <p><strong>Preço:</strong> <?= isset($pro['preco']) ? 'R$ ' . number_format((float)$pro['preco'], 2, ',', '.') : '-' ?></p>

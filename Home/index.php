@@ -7,10 +7,8 @@ $sql = "SELECT id, nome, pdf, texto, imagem, preco, classe, tempodepostagem
         ORDER BY tempodepostagem DESC";
 
 $produtos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-
-
-
 ?>
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -19,16 +17,111 @@ $produtos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
   <title>DrawQuest — Personagens Prontos para RPG</title>
   <link rel="stylesheet" href="styleHome.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+
+  <style>
+    .carrossel-fade {
+      text-align: center;
+      padding: 60px 0;
+      background-color: #16213e;
+    }
+
+    .carrossel-container {
+      position: relative;
+      width: 80%;
+      max-width: 600px;
+      margin: 0 auto;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    .slide.ativo {
+      opacity: 1;
+      position: relative;
+    }
+
+    .slide img {
+  width: 100%;
+  height: auto;
+  max-height: 400px; /* limite opcional */
+  object-fit: contain; /* exibe a imagem inteira */
+  border-radius: 20px;
+  background-color: #0d1b2a; /* cor de fundo para imagens menores */
+}
+
+
+    .legenda {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 0 0 20px 20px;
+    }
+
+    .btn-seta {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.4);
+      color: #fff;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 50%;
+      transition: background 0.3s;
+    }
+
+    .btn-seta:hover {
+      background: rgba(0,0,0,0.7);
+    }
+
+    .btn-seta.esquerda { left: 10px; }
+    .btn-seta.direita { right: 10px; }
+
+    .indicadores {
+      display: flex;
+      justify-content: center;
+      margin-top: 15px;
+      gap: 8px;
+    }
+
+    .indicadores button {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      background-color: #fff4;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .indicadores button.ativo {
+      background-color: #fff;
+    }
+  </style>
 </head>
 <body>
+
   <header>
     <div class="logo">
       <h1>DrawQuest</h1>
     </div>
     <nav>
-        <?php if (empty($_SESSION['id'])): ?>
-      <a class="aba-link" href="../paginalogin/login.php">Login</a>
-   
+      <?php if (empty($_SESSION['id'])): ?>
+        <a class="aba-link" href="../paginalogin/login.php">Login</a>
       <?php else: ?>
         <a href="../config/sair.php">Deslogar</a>
       <?php endif; ?>
@@ -38,45 +131,74 @@ $produtos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     </nav>
   </header>
 
-  <section class="banner">
-    <img src="https://wallpaperflare.com/static/1016/101/1016/fantasy-rpg-banner-artwork-wallpaper.jpg" alt="Banner DrawQuest">
-  </section>
+  
 
   <section class="herois">
     <h2>Dê vida à sua aventura com personagens únicos e prontos para jogar!</h2>
     <p>Arte original, estilos variados e fichas completas para seus mundos de RPG.</p>
-    <a href="#galeria" class="btn">Ver personagens</a>
+    <a href="#carrossel" class="btn">Ver personagens</a>
   </section>
 
-  <section id="galeria" class="galeriaHerois">
-    <h3>Escolha seu herói!</h3>
-    <div class="galeria-navegacao">
-      <button class="seta esquerda">◀</button>
-      <div class="cards">
-        <?php foreach ($produtos as $pro): ?>
-          <?php $id = (int)($pro['id'] ?? 0); ?>
-          <div class="card" role="link" tabindex="0" data-id="<?= $id ?>" aria-label="Ver produto <?= htmlspecialchars($pro['nome'] ?? 'Sem nome', ENT_QUOTES, 'UTF-8') ?>">
-            <?php
-              // Se imagem for um caminho string use-o; caso contrário exiba placeholder.
-              if (!empty($pro['imagem']) && is_string($pro['imagem'])) {
-                  $img = strpos($pro['imagem'], 'http') === 0 ? $pro['imagem'] : ('../' . ltrim($pro['imagem'], '/\\'));
-              } else {
-                  $img = 'https://i.imgur.com/DMXG4nK.png';
-              }
-            ?>
-            <img src="<?= htmlspecialchars($img, ENT_QUOTES, 'UTF-8') ?>" alt="Personagem">
-            <h4><?= htmlspecialchars($pro['nome'] ?? $pro['titulo'] ?? 'Sem nome', ENT_QUOTES, 'UTF-8') ?></h4>
-            <p><strong>Classe:</strong> <?= htmlspecialchars($pro['classe'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-            <p><strong>Estilo:</strong> <?= htmlspecialchars($pro['estilo'] ?? '-', ENT_QUOTES, 'UTF-8') ?></p>
-            <p><?= nl2br(htmlspecialchars($pro['texto'] ?? $pro['assunto'] ?? '', ENT_QUOTES, 'UTF-8')) ?></p>
-            <a class="btn" href="index.php?id=<?= $id ?>" onclick="event.stopPropagation();">Comprar / Ver</a>
-        </div>
-          </div>
-        <?php endforeach; ?>
-  
+  <!-- 🎠 Carrossel de imagens locais -->
+  <section id="carrossel" class="carrossel-fade">
+    <h3>Galeria de Personagens</h3>
+    <div class="carrossel-container">
+
+      <div class="slide ativo">
+        <img src="../imagens/imagens_carrosel/01_07_25.png" alt="Imagem 1">
+        <p class="legenda">Imagem 1</p>
       </div>
-      <button class="seta direita">▶</button>
+
+      <div class="slide">
+        <img src="../imagens/imagens_carrosel/02_07_25.png" alt="Imagem 2">
+        <p class="legenda">Imagem 2</p>
+      </div>
+
+      <div class="slide">
+        <img src="../imagens/imagens_carrosel/17_07_25.png" alt="Imagem 3">
+        <p class="legenda">Imagem 3</p>
+      </div>
+
+      <div class="slide">
+        <img src="../imagens/imagens_carrosel/27_07_25.png" alt="Imagem 4">
+        <p class="legenda">Imagem 4</p>
+      </div>
+
+      <div class="slide">
+        <img src="../imagens/imagens_carrosel/Alyssa.png" alt="Imagem 5">
+        <p class="legenda">Imagem 5</p>
+      </div>
+
+      <div class="slide">
+        <img src="../imagens/imagens_carrosel/grupo.png" alt="Imagem 6">
+        <p class="legenda">Imagem 6</p>
+      </div>
+
+      <div class="slide">
+        <img src="../imagens/imagens_carrosel/HiPaint_1760650165362.png" alt="Imagem 7">
+        <p class="legenda">Imagem 7</p>
+      </div>
+
+      <div class="slide">
+        <img src="../imagens/imagens_carrosel/TheJaoJao.png" alt="Imagem 8">
+        <p class="legenda">Imagem 8</p>
+      </div>
+
+      <div class="slide">
+        <img src="../imagens/imagens_carrosel/Shizumi.png" alt="Imagem 9">
+        <p class="legenda">Imagem 9</p>
+      </div>
+
+      <div class="slide">
+        <img src="../imagens/imagens_carrosel/Thalëriann.png" alt="Imagem 10">
+        <p class="legenda">Imagem 10</p>
+      </div>
+
+      <button class="btn-seta esquerda">◀</button>
+      <button class="btn-seta direita">▶</button>
     </div>
+
+    <div class="indicadores"></div>
   </section>
 
   <footer>
@@ -84,42 +206,37 @@ $produtos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
   </footer>
 
   <script>
-    const esquerda = document.querySelector('.seta.esquerda');
-    const direita = document.querySelector('.seta.direita');
-    const cards = document.querySelector('.cards');
-
-    esquerda.addEventListener('click', () => {
-      cards.scrollBy({ left: -300, behavior: 'smooth' });
-    });
-
-    direita.addEventListener('click', () => {
-      cards.scrollBy({ left: 300, behavior: 'smooth' });
-    });
-
     document.addEventListener('DOMContentLoaded', function () {
-      document.querySelectorAll('.card').forEach(function(card){
-        card.style.cursor = 'pointer';
+      const slides = document.querySelectorAll('.slide');
+      const esquerda = document.querySelector('.btn-seta.esquerda');
+      const direita = document.querySelector('.btn-seta.direita');
+      const indicadores = document.querySelector('.indicadores');
+      let indice = 0;
 
-        card.addEventListener('click', function (e) {
-          // se o clique for em um link interno (ex: Comprar) não interferir
-          if (e.target.closest('a')) return;
-          var id = card.dataset.id;
-          if (id) window.location.href = '../Personagens/ver_produtos.php?id=' + encodeURIComponent(id);
-        });
-
-        card.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            var id = card.dataset.id;
-            if (id) window.location.href = '../Personagens/ver_produtos.php?id=' + encodeURIComponent(id);
-          }
-        });
+      slides.forEach((_, i) => {
+        const btn = document.createElement('button');
+        if (i === 0) btn.classList.add('ativo');
+        btn.addEventListener('click', () => mudarSlide(i));
+        indicadores.appendChild(btn);
       });
+
+      const atualizar = () => {
+        slides.forEach((s, i) => s.classList.toggle('ativo', i === indice));
+        indicadores.querySelectorAll('button').forEach((b, i) => b.classList.toggle('ativo', i === indice));
+      };
+
+      const mudarSlide = (novo) => {
+        indice = (novo + slides.length) % slides.length;
+        atualizar();
+      };
+
+      esquerda.addEventListener('click', () => mudarSlide(indice - 1));
+      direita.addEventListener('click', () => mudarSlide(indice + 1));
+
+      // Troca automática
+      setInterval(() => mudarSlide(indice + 1), 5000);
     });
   </script>
+
 </body>
 </html>
-
-
-
-

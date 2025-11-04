@@ -19,7 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($usuario && password_verify($senha, $usuario['senha'])) {
             // grava id na sessão (usuário logado)
-            $_SESSION['id'] = $usuario['id'];
+            $_SESSION['id']       = $usuario['id'];
+$_SESSION['user_id']  = $usuario['id'];
+$_SESSION['email']    = $usuario['email'];
+
             header('Location: ../Home/index.php');
             exit();
         } else {

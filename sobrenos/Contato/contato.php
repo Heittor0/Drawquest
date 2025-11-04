@@ -19,7 +19,9 @@ require "../../config/config.php";
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
+   
     <header>
+         <h1>DrawQuest</h1>
     <nav>
           <?php if (empty($_SESSION['id'])): ?>
        <a class="aba-link" href="../../paginalogin/login.php">Login</a>
